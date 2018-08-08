@@ -36,6 +36,7 @@ Please be careful when changing other peoples code, maybe talk to them first. Co
 
 * **Viviane Kakerbeck** - Research assistant at the University of Osnabrück; vkakerbeck@uos.de; vkakerbeck.tk
 * **Raul Sulaimanov** - Master Student at the University of Osnabrück
+* **Nicolas Kuske** - PhD Student at the University of Osnabrück; https://www.researchgate.net/profile/Nicolas_Kuske
 * add yourself to the list if you contribute to this project
 
 The project is conducted under supervision of Peter and Sabine König.
