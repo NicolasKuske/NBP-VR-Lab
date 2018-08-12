@@ -1,13 +1,11 @@
 %% ----------------Analyze Raw ViewedHouses Files (1st Level)----------------
-savepath = 'C:/Users/vivia/Dropbox/Project Seahaven/Tracking/ViewedHouses/';
+savepath = 'C:\Users\nkuske\Dropbox\NKuskePhDProjects\AlignmentStudy\AlignmentAnalysis\Familiarity\Data';
 %--------------------------------------------------------------------------
-files = dir('ViewedHouses_VP*.txt');%Analyzes all subjectfiles in your ViewedHouses directory
+files = dir(strcat(savepath,'\','ViewedHouses_VP*.txt'));%Analyzes all subjectfiles in that directory
 Number = length(files);
 avgdist = cell(1,Number);
 for ii = 1:Number
-    suj_num = files(ii).name(16:19);
-    file = strcat('ViewedHouses_VP',num2str(suj_num),'.txt');
-    data = fopen(file);
+    data = fopen(strcat(files(ii).folder,'\', files(ii).name));
     data = textscan(data,'%s','delimiter', '\n');
     data = data{1};
     data = table2array(cell2table(data));
