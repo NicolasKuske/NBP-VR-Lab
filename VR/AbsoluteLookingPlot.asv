@@ -1,0 +1,226 @@
+
+%% plot average looking time of correct decided houses vs incorrect decided houses for the absolute task in VR and Belt over all sessions 
+
+%working on Laptop or in Office?  
+WorkPlace = str2double(input('Enter 1 for Laptop or 2 for Office: ','s'));
+
+%which Dataset?
+DataSet = input('Enter A for Dataset A and B for Dataset B: ', 's');
+
+OfficePath='/net/home/student/n/nkuske/Dropbox/NKuskePhDProjects/AlignmentStudy/';
+LaptopPath='C:\Users\nkuske\Dropbox\NKuskePhDProjects\AlignmentStudy\';
+
+if WorkPlace==2
+%PC
+sjnums= readtable(strcat(OfficePath,'AlignmentAnalysis/Familiarity/Data/Set', DataSet, '/measurementList.txt'));
+else
+sjnums= readtable(strcat(LaptopPath,'AlignmentAnalysis\Familiarity\Data\Set', DataSet, '\measurementList.txt'));
+end
+
+ 
+M1Num = [];
+M2Num = [];
+M3Num = [];
+for s=1:length(sjnums.Var1)
+    if ~isnan(sjnums.Var3(s))
+        M1Num = [M1Num sjnums.Var1(s)];
+        M2Num = [M2Num sjnums.Var2(s)];
+        M3Num = [M3Num sjnums.Var3(s)];
+    end
+end
+Measurements = [M1Num;M2Num;M3Num];
+
+Number = length(M1Num);
+
+%matrices with one vector for each sessions
+%where all correct and wrong decisions are stored
+%each decision entry is the looking time (house information is lost)
+Good=struct(); Good.Session1=[]; Good.Session2=[]; Good.Session3=[]; 
+Bad=struct(); Bad.Session1=[]; Bad.Session2=[]; Bad.Session3=[]; 
+
+
+%read in participants of every session
+for iii=1:3
+%for every entry in MiiiNum read in NumViewsD file.
+for n = 1:Number
+    disp(n);
+    
+    
+%for every house in this participants 
+%Output.Absolute.Trial_3s or Output.Absolute.Trial_Inf... 
+if WorkPlace==2
+%PC
+Subj_HouseTime=load(strcat(OfficePath,'AlignmentAnalysis/Familiarity/Data/Set', DataSet,...
+    '/NumViewsD_VP_',num2str(Measurements(iii,n)), '.mat'));
+
+Subj_Perf=load(strcat(OfficePath,'AlignmentVR_AllPCsData/tracking_experiments_AlignmentVR/',...
+    'Results/AlignmentVR_SubjNo_', num2str(Measurements(iii,n)), '.mat'));
+
+else
+Subj_HouseTime=load(strcat(LaptopPath,'\AlignmentAnalysis\Familiarity\Data\Set', DataSet, '\NumViewsD_','VP_', num2str(Measurements(iii,n)), '.mat'));
+Subj_Perf=load(strcat(LaptopPath,'\AlignmentVR_AllPCsData\tracking_experiments_AlignmentVR\Results\AlignmentVR_SubjNo_', num2str(Measurements(iii,n)), '.mat'));
+
+end   
+
+
+    %convert house numbers to numbers
+    %delete last N(ot)H(ouse) row
+Subj_HouseTime.NumViews(height(Subj_HouseTime.NumViews),:) = [];
+Subj_HouseTime.NumViews.House=str2double(extractBefore(Subj_HouseTime.NumViews.House,'_'));
+        
+    for ii=1:36
+        
+        %extract house number and from house number extract looking time
+        %if both are the same, add time to good otherwise add time to bad
+        if strcmp(Subj_Perf.Output.Absolute.Trial_3s(ii).Correct,Subj_Perf.Output.Absolute.Trial_3s(ii).Decision)
+        Good.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)];
+        else
+        Bad.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)];
+        end
+        
+        if strcmp(Subj_Perf.Output.Absolute.Trial_Inf(ii).Correct,Subj_Perf.Output.Absolute.Trial_Inf(ii).Decision)
+        Good.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
+        else
+        Bad.(strcat('Session',num2str(iii)))=[Bad.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
+        end
+        
+    end
+
+end
+end
+
+
+%plot mean and scatter
+%% PLOT
+fL=figure('Name','AbsoluteLooking','NumberTitle','off');
+axL=axes('Parent', fL);  
+
+%plot scattered datapoints first so that the bar plot overlays on them
+
+%create a xG value for each good datapoint (different color for plotting)
+xG=[]; xB=[];
+
+%good first session
+for i=1:length(Good.Session1)
+    
+    xG= [xG , 0.9];
+    
+end    
+
+%bad first session
+for i=1:length(Bad.Session1)
+    xB= [xB , 1.1];
+end 
+
+
+for i=1:length(Good.Session2)
+    xG= [xG , 1.9];
+end    
+
+for i=1:length(Bad.Session2)
+    xB= [xB , 2.1];
+end 
+
+for i=1:length(Good.Session3)
+    xG= [xG , 2.9];
+end    
+
+for i=1:length(Bad.Session3)
+    xB= [xB , 3.1];
+end 
+
+
+yG = [Good.Session1, Good.Session2, Good.Session3];
+sz=52;
+Gcol=[.0 .4 .0];
+
+pM=scatter(axL,xG,yG,sz, Gcol, 'filled', 'jitter','on', 'jitterAmount',0.05);
+pM.MarkerEdgeAlpha = 0.1;
+pM.MarkerFaceAlpha = 0.1;
+
+hold on
+yB = [Bad.Session1, Bad.Session2, Bad.Session3];
+sz=52;
+Bcol=[.5 .0 .0];
+
+pM=scatter(axL,xB,yB,sz, Bcol, 'filled', 'jitter','on', 'jitterAmount',0.05);
+pM.MarkerEdgeAlpha = 0.1;
+pM.MarkerFaceAlpha = 0.1;
+
+%axL.YScale='log';
+
+c_1=rand(1,20);
+c_2=rand(1,100);
+C = [c_1 c_2];
+grp = [zeros(1,length(Good.Session))+.9,ones(1,length(yB))+.1, ones(1,length(yB))+1.1 ];
+boxplot([yG yB yB/1.2] ,grp, 'Positions', [0.9 1.1 2.1])
+
+
+
+hold on 
+grp = [zeros(1,length(Good.Session1))+.9,ones(1,length(Bad.Session1))+.1,...
+    ones(1,length(Good.Session2))+.9, ones(1,length(Bad.Session2))+1.1,...
+    ones(1,length(Good.Session2))+1.9, ones(1,length(Bad.Session2))+2.1];
+boxplot([Good.Session1, Bad.Session1, Good.Session2, Bad.Session2],...
+grp,'Positions',[0.9 1.1 1.9 2.1 2.9 3.1]);% 2.9 1.1 2.1 3.1]);
+hold off
+% %put bars after scatter so they are not overlaid by it
+% 
+% 
+% VR_taskXtime=[mean(VVRs1_A3), mean(VVRs1_AI); mean(VVRs1_R3), mean(VVRs1_RI)];
+% 
+% VR_taskXtime_Std=[std(VVRs1_A3), std(VVRs1_AI); std(VVRs1_R3), std(VVRs1_RI)];
+% 
+% 
+% barM = bar('Parent',axL, VR_taskXtime );
+% 
+% % bar settings
+% barM(1).BarWidth=.6; barM(2).BarWidth=.6;
+% barM(1).LineWidth=2; barM(2).LineWidth=2;
+% %barM.FaceColor = 'white';
+% barM(1).FaceAlpha= 0; barM(2).FaceAlpha= 0;
+% 
+% %add errorbar
+% ngroups = size(VR_taskXtime, 1);
+% nbars = size(VR_taskXtime, 2);
+% 
+% % Calculating the width for each bar group
+% groupwidth = min(0.8, nbars/(nbars + 1.5));
+% 
+% % Set the position of each error bar in the centre of the main bar
+% % Based on barweb.m by Bolu Ajiboye from MATLAB File Exchange
+% for i = 1:nbars
+%     % Calculate center of each bar
+%     x = (1:ngroups) - (groupwidth/2) + (2*i-1) * (groupwidth / (2*nbars));
+%     eM=errorbar('Parent', axL, x, VR_taskXtime(:,i), VR_taskXtime_Std(:,i),...
+%         'Color','black', 'linestyle', 'none', 'LineWidth' ,2, 'CapSize',20 );
+% end
+% 
+% hold off
+% 
+% %Adapt axes properties
+% axL.FontSize=14;
+% axL.TickLength=[0.02 0.02];
+% % xlim(axS,[0 36]);
+% % axS.XTick=0:18:36;
+% ylim(axL,[0.25 1]);
+% axL.YTick=0:0.25:1;
+% % axS.XGrid='on';
+% axL.YGrid='on';
+% xticks(axL,[1 2]);
+% 
+% %Naming each of the bar groups
+% xticklabels(axL,{ 'Absolute', 'Relative'});
+% 
+% xlabel(axL,'Spatial Task')
+% ylabel(axL,'Performance')
+% 
+% %title(axM,'All Subjects: Marginal Sessions ');
+% 
+% box(axL, 'off')
+% 
+% %create a legend object for the figure axis
+% lM=legend(axL, {'Repeated Trial Blocks' 'Mean and SD'},'Orientation', 'Horizontal');
+% 
+
+
