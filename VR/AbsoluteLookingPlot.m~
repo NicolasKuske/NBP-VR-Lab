@@ -361,133 +361,43 @@ ylim(axLH,[0 150]);
 xlim(axLH,[0 50]);
 
 xlabel(axLH,'Fixation Time (s)');
-ylabel(axLH,'Fixated Houses');
+ylabel(axLH,'Number of Houses');
 %title(axLH,strcat( num2str(), 32, 'Learned Houses'));
 
-
-%Add model plot to figure
+%if you want to add other plots the figure
+%normal exponential decay fit does give bad result
+%with mean of AllOcc as decay parameter
 x = hLH.BinEdges; 
 
-%exponential decay model
 %it sorts automatically 
 %fL=fitdist(AllOcc','Exponential');
 %y=mean(AllOcc)/mean(exppdf(x,fL.mu))*exppdf(x,fL.mu); 
 
-%exponential decay fitted with mean as halftime model above does the same
 yexp=exp(-x/mean(AllOcc));
 No=mean(AllOcc)/mean(yexp);
 
 y=No*yexp;
 
-mean(AllOcc)
 mean(y)
+p=polyfit(x', [hLH.BinCounts 0]', 2)
 
-%Other possible models:
-%
+y = polyval(p,x'); 
+
+y=100*x.^-2;
+
+
 % FL=fit(x', [hLH.BinCounts 0]', 'exp1');
+% 
 % y=170*exp(-x/3.2); 
 % 
 % GL=fitdist(AllOcc','Gamma');
 % %why times 500??
 % y=500*gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
 % 
-%residual error
 % resG=sort(AllOcc)-y;
 % plot(resG)
 
 
-sz=10;
-c=[1 0.7 0.1];
-%so that the scatter command does not overwrite the figure data
-hold on
-pHL=scatter(axLH,x,y,sz,c,'filled');
-
-pHL.MarkerEdgeAlpha = 0.5;
-pHL.MarkerFaceAlpha = 0.5;
-hold off
-
-box(axLH, 'off');
-
-lV=legend(axLH, {'Sample Data' 'Exponential Model'});
-
-
-%% qq plot
-
-
-
-
-
-
-
-
-%% compare 
-
-%time interval in seconds for bins
-Ti=0.05;
-%so approximate maximal time looking at one object
-nT=75/0.05;
-
-fLH=figure('Name','LookingtimeHistogram','NumberTitle','off');
-
-axLH=axes('Parent', fLH);   
-
-hLH=histogram('Parent', axLH);
-
-%starting point, length of each bin which goes back to the starting point also
-%so actually starts at -0.025
-hLH.BinEdges= 0:Ti:nT*Ti;
-
-%vector which counts number of data occurences in the bins as specified
-hLH.BinCounts=histcounts(AllOcc,hLH.BinEdges);
-
-hLH.LineStyle='none';
-hLH.FaceAlpha=1;
-hLH.FaceColor=[0 0 0.5];
-
-
-axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
-
-axLH.XTick= 25:25:50; 
-
-axLH.YTick=0:50:100;
-
-ylim(axLH,[0 150]);
-xlim(axLH,[0 50]);
-
-xlabel(axLH,'Fixation Time (s)');
-ylabel(axLH,'Fixated Houses');
-%title(axLH,strcat( num2str(), 32, 'Learned Houses'));
-
-
-%Add model plot to figure
-x = hLH.BinEdges; 
-
-%exponential decay model
-%it sorts automatically 
-%fL=fitdist(AllOcc','Exponential');
-%y=mean(AllOcc)/mean(exppdf(x,fL.mu))*exppdf(x,fL.mu); 
-
-%exponential decay fitted with mean as halftime model above does the same
-yexp=exp(-x/mean(AllOcc));
-No=mean(AllOcc)/mean(yexp);
-
-y=No*yexp;
-
-mean(AllOcc)
-mean(y)
-
-%Other possible models:
-%
-% FL=fit(x', [hLH.BinCounts 0]', 'exp1');
-% y=170*exp(-x/3.2); 
-% 
-% GL=fitdist(AllOcc','Gamma');
-% %why times 500??
-% y=500*gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
-% 
-%residual error
-% resG=sort(AllOcc)-y;
-% plot(resG)
 
 
 sz=10;
