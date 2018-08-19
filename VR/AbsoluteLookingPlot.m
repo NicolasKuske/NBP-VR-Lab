@@ -122,8 +122,9 @@ end
 
 
 
-%plot mean and scatter
-%% PLOT
+
+%% PLOT mean and scatter
+
 fL=figure('Name','AbsoluteLooking','NumberTitle','off');
 axL=axes('Parent', fL);  
 
@@ -229,13 +230,7 @@ lav(4).YData(:) = quantile(Good.Session2,.025);
 lav(5).YData(:) = quantile(Bad.Session1,.025);
 lav(6).YData(:) = quantile(Good.Session1,.025);
 
-
-
-
-
 hold off
-
-
 
 axL.FontSize=14;
 axL.TickLength=[0.02 0.02];
@@ -259,6 +254,8 @@ box(axL, 'off')
 
 %create a legend object for the figure axis
 lL=legend(axL, {'Correct Houses' 'Wrong Houses'});
+
+
 
 
 
@@ -355,55 +352,42 @@ lLZ=legend(axLZ, {'Correct Houses' 'Wrong Houses'});
 
 %% Histogram of looking time distribution 
 
-
-
-%shows how often each number appeared
+% %shows how often each number appeared to check correct binning
+%    
+%    Athing=AllOcc;
+%    what = unique(Athing); %returns a list where each object in Athing appears once and sorted from small to large
+% 
+%    N = length(what);   count = zeros(N,1);
+% 
+%    for k = 1:N
+%       count(k) = sum(Athing==what(k)); %works because the comparing expression returns a boolean array
+%    end
+% 
+%    disp([ what(:) count ]);
    
-   Athing=AllOcc;
-   what = unique(Athing); %returns a list where each object in Athing appears once and sorted from small to large
+fLH=figure('Name','LookingtimeHistogram','NumberTitle','off');
+axLH=axes('Parent', fLH);   
 
-   N = length(what);   count = zeros(N,1);
-
-   for k = 1:N
-      count(k) = sum(Athing==what(k)); %works because the comparing expression returns a boolean array
-   end
-
-   disp([ what(:) count ]);
-   
 %time interval in seconds for bins
 Ti=1/30;
 %only if the bins are finer than the observations 
 %so approximate maximal time looking at one object
 nT=max(AllOcc)/Ti;
 
-fLH=figure('Name','LookingtimeHistogram','NumberTitle','off');
-
-axLH=axes('Parent', fLH);   
-
 BinEdges=0+0.01:Ti:nT*Ti+0.01;
 BinCounts=histcounts(AllOcc, 'BinEdges',BinEdges); %'BinWidth',Ti); leads to problem with values at the edge
 
-
 hLH=histogram('Parent', axLH, 'BinEdges', BinEdges, 'BinCounts',BinCounts );
-
-%starting point, length of each bin which goes back to the starting point also
-%so actually starts at -0.025
-
-
 
 hLH.LineStyle='none';
 hLH.FaceAlpha=1;
 hLH.FaceColor=[0 0 0.5];
 
 
-axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
-
-axLH.XTick= 25:25:50; 
-
+axLH.XTick= 0:20:40; 
+xlim(axLH,[0 40]);
 axLH.YTick=0:50:100;
-
-ylim(axLH,[0 150]);
-xlim(axLH,[0 50]);
+ylim(axLH,[0 100]);
 
 xlabel(axLH,'Fixation Time (s)');
 ylabel(axLH,'Fixated Houses');
@@ -413,43 +397,37 @@ ylabel(axLH,'Fixated Houses');
 
 %ADD MODEL PLOT to figure
 
-x = BinEdges(5:length(BinEdges)-1); 
-FCounts=BinCounts(5:length(BinCounts));
+x = BinEdges; 
+yBin= [BinCounts 0]; %because it has one less element than edges
 
-%exponential decay model
-%it sorts automatically 
-%fL=fitdist(AllOcc','Exponential');
-%y=mean(AllOcc)/mean(exppdf(x,fL.mu))*exppdf(x,fL.mu); 
+%one parameter exponential decay model
+%yexp=exppdf(x,mean(yBin));
+%No=mean(yBin)/mean(exppdf(x,mean(yBin))); %why this No? Dunno...
+%y=No*yexp
+%exponential decay fitted with mean as halftime is same model as above
 
-%exponential decay fitted with mean as halftime model above does the same
-yexp=exp(-x/7);
-%yexp=exp(-Fx/6)%mean(FCounts))
-No=50%*mean(AllOcc)/mean(yexp)/3;
-y=No*yexp;
-
-
-%Other plausible two parameter models (quadratic does not work well):
+%two parameter models (quadratic does not work well):
 %
-% FL=fit(x', [hLH.BinCounts 0]', 'exp1'); %needs fit toolkit
-% y=170*exp(-x/3.2); 
+FL=fit(x', yBin', 'exp1'); %needs fit toolkit
+y=FL.a*exp(FL.b*x); 
 % 
-GL=fitdist(FCounts','Gamma');
-% % %+0.01 because otherwise model gives infinite at 0
- ygam=gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
-Ngam=mean(FCounts)/mean(ygam);
-y=Ngam*ygam;
+% GL=fitdist(yBin','Gamma');
+% ygam=gampdf(x,GL.a,GL.b); %k=a * Theta=b = mean yBin
+% Ngam=mean(yBin)/mean(ygam); %again why this Ngam, dunno...
+% y=Ngam*ygam;
 
-%residual error
-% resG=sort(AllOcc)-y;
+%%residual error
+% resG=sort(yBin)-y;
 % plot(resG)
 
 %mean(AllOcc)
+mean(yBin)
 mean(y)
 
+hold on %so that the scatter command does not overwrite the figure data
 sz=10;
 c=[1 0.7 0.1];
-%so that the scatter command does not overwrite the figure data
-hold on
+
 pHL=scatter(axLH,x,y,sz,c,'filled');
 
 pHL.MarkerEdgeAlpha = 0.5;
@@ -457,24 +435,26 @@ pHL.MarkerFaceAlpha = 0.5;
 hold off
 
 box(axLH, 'off');
+axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
+legend(axLH, {'Sample Data' 'Exponential Model'});
 
-lV=legend(axLH, {'Sample Data' 'Exponential Model'});
 
 
 
 %% qq plot
 
-
 figure;
-Q=qqplot(hLH.BinCounts,y);
+%Q=qqplot(AllOcc,y);  ylim([0 1.4]); %note sure if it is important that there
+%are not equal amount of data
+Q=qqplot(yBin,y);
 
 title '' %'Session 1' %Quantile-Quantile Plot of All Performances'
-ylabel('Quantiles of House Distribution');
-xlabel('Quantiles of Normal Distribution');
+ylabel('Quantiles of Fixation Distribution');
+xlabel('Quantiles of Exponential Distribution');
 % 
-% set(gca, 'FontSize', 14, 'XTick', -2:2:2,'YTick', 80:40:160);
-% ylim([80 170])
-% xlim([-2.5 2.5])
+set(gca, 'FontSize', 14, 'XTick',60:60:180,'YTick', 0:20:80);
+% ylim([0 0.1])
+% xlim([0 2.5])
 set(Q, 'Marker', '.','MarkerEdgeColor', [0 0 0.5],'MarkerSize',20);
 %legend(Q(1),'Session 2', 'Location', 'North')
 %the fitted straight line edge parts
@@ -487,84 +467,74 @@ Q(3).MarkerSize=0.01;
 
 
 
-%% compare 
 
-%time interval in seconds for bins
-Ti=0.05;
-%so approximate maximal time looking at one object
-nT=75/0.05;
 
-fLH=figure('Name','LookingtimeHistogram','NumberTitle','off');
+%% compare looking time on wrong houses (in session 2)
 
+fLH=figure('Name','LookingtimeBadSession','NumberTitle','off');
 axLH=axes('Parent', fLH);   
 
-hLH=histogram('Parent', axLH);
 
-%starting point, length of each bin which goes back to the starting point also
-%so actually starts at -0.025
-hLH.BinEdges= 0:Ti:nT*Ti;
+%time interval in seconds for bins
+Ti=1/30;
+%only if the bins are finer than the observations 
+%so approximate maximal time looking at one object
+nT=max(Bad.Session2)/Ti;
 
-%vector which counts number of data occurences in the bins as specified
-hLH.BinCounts=histcounts(AllOcc,hLH.BinEdges);
+BinEdges=0+0.01:Ti:nT*Ti+0.01;
+BinCounts=histcounts(Bad.Session2, 'BinEdges',BinEdges); %'BinWidth',Ti); leads to problem with values at the edge
+
+hLH=histogram('Parent', axLH, 'BinEdges', BinEdges, 'BinCounts',BinCounts );
 
 hLH.LineStyle='none';
 hLH.FaceAlpha=1;
 hLH.FaceColor=[0 0 0.5];
 
 
-axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
-
-axLH.XTick= 25:25:50; 
-
-axLH.YTick=0:50:100;
-
-ylim(axLH,[0 150]);
-xlim(axLH,[0 50]);
+axLH.XTick= 10:10:30; 
+xlim(axLH,[0 30]);
+axLH.YTick=0:5:10;
+ylim(axLH,[0 10]);
 
 xlabel(axLH,'Fixation Time (s)');
 ylabel(axLH,'Fixated Houses');
 %title(axLH,strcat( num2str(), 32, 'Learned Houses'));
 
 
-%Add model plot to figure
-x = hLH.BinEdges; 
 
-%exponential decay model
-%it sorts automatically 
-%fL=fitdist(AllOcc','Exponential');
-%y=mean(AllOcc)/mean(exppdf(x,fL.mu))*exppdf(x,fL.mu); 
+%ADD MODEL PLOT to figure
 
-%exponential decay fitted with mean as halftime model above does the same
-yexp=exp(-x/mean(AllOcc));
-No=mean(AllOcc)/mean(yexp);
-y=No*yexp;
+x = BinEdges; 
+yBin= [BinCounts 0]; %because it has one less element than edges
 
+%one parameter exponential decay model
+%yexp=exppdf(x,mean(yBin));
+%No=mean(yBin)/mean(exppdf(x,mean(yBin))); %why this No? Dunno...
+%y=No*yexp
+%exponential decay fitted with mean as halftime is same model as above
 
-
-%Other possible models:
+%two parameter models (quadratic does not work well):
 %
-% FL=fit(x', [hLH.BinCounts 0]', 'exp1'); %needs fit toolkit
-% y=170*exp(-x/3.2); 
+FL=fit(x', yBin', 'exp1'); %needs fit toolkit
+y=FL.a*exp(FL.b*x); 
 % 
-% GL=fitdist(AllOcc','Gamma');
-% %+0.01 because otherwise model gives infinite at 0
-% ygam=gampdf(x+0.01,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
-% Ngam=mean(AllOcc)/mean(ygam);
+% GL=fitdist(yBin','Gamma');
+% ygam=gampdf(x,GL.a,GL.b); %k=a * Theta=b = mean yBin
+% Ngam=mean(yBin)/mean(ygam); %again why this Ngam, dunno...
 % y=Ngam*ygam;
 
-%residual error
-% resG=sort(AllOcc)-y;
+%%residual error
+% resG=sort(yBin)-y;
 % plot(resG)
 
-
-mean(AllOcc)
+%mean(AllOcc)
+mean(yBin)
 mean(y)
 
-
+hold on %so that the scatter command does not overwrite the figure data
 sz=10;
 c=[1 0.7 0.1];
-%so that the scatter command does not overwrite the figure data
-hold on
+
 pHL=scatter(axLH,x,y,sz,c,'filled');
 
 pHL.MarkerEdgeAlpha = 0.5;
@@ -572,8 +542,126 @@ pHL.MarkerFaceAlpha = 0.5;
 hold off
 
 box(axLH, 'off');
+axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
+legend(axLH, {'Sample Data' 'Exponential Model'});
 
-lV=legend(axLH, {'Sample Data' 'Exponential Model'});
+
+
+
+
+
+
+
+%% compare looking time of single subject (session 1, number=10)
+%% remember to first change the loop reading in the data above
+
+SubjOcc=[];
+
+for iii=1:1
+%for every entry in MiiiNum read in NumViewsD file.
+for n = 10:10 %Number
+    disp(n);
+    
+    
+%for
+if WorkPlace==2
+%PC
+Subj_HouseTime=load(strcat(OfficePath,'AlignmentAnalysis/Familiarity/Data/Set', DataSet,...
+    '/NumViewsD_VP_',num2str(Measurements(iii,n)), '.mat'));
+
+else
+Subj_HouseTime=load(strcat(LaptopPath,'\AlignmentAnalysis\Familiarity\Data\Set', DataSet, '\NumViewsD_','VP_', num2str(Measurements(iii,n)), '.mat'));
+
+end   
+
+    %convert house numbers to numbers
+    %delete last N(ot)H(ouse) row
+Subj_HouseTime.NumViews(height(Subj_HouseTime.NumViews),:) = [];
+Subj_HouseTime.NumViews.House=str2double(extractBefore(Subj_HouseTime.NumViews.House,'_'));
+
+SubjOcc=[SubjOcc Subj_HouseTime.NumViews.occ'];
+        
+end
+end
+
+%NOW PLOT
+
+fLH=figure('Name','LookingtimeSingleSubj','NumberTitle','off');
+axLH=axes('Parent', fLH);   
+axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
+
+
+%time interval in seconds for bins
+Ti=1/30;
+%only if the bins are finer than the observations 
+%so approximate maximal time looking at one object
+nT=max(SubjOcc)/Ti;
+
+BinEdges=0+0.01:Ti:nT*Ti+0.01;
+BinCounts=histcounts(SubjOcc, 'BinEdges',BinEdges); %'BinWidth',Ti); leads to problem with values at the edge
+
+hLH=histogram('Parent', axLH, 'BinEdges', BinEdges, 'BinCounts',BinCounts );
+
+hLH.LineStyle='none';
+hLH.FaceAlpha=1;
+hLH.FaceColor=[0 0 0.5];
+
+
+axLH.XTick= 10:10:30; 
+xlim(axLH,[0 30]);
+axLH.YTick=0:2:4;
+ylim(axLH,[0 4]);
+
+xlabel(axLH,'Fixation Time (s)');
+ylabel(axLH,'Fixated Houses');
+%title(axLH,strcat( num2str(), 32, 'Learned Houses'));
+
+
+
+%ADD MODEL PLOT to figure
+
+x = BinEdges; 
+yBin= [BinCounts 0]; %because it has one less element than edges
+
+%one parameter exponential decay model
+%yexp=exppdf(x,mean(yBin));
+%No=mean(yBin)/mean(exppdf(x,mean(yBin))); %why this No? Dunno...
+%y=No*yexp
+%exponential decay fitted with mean as halftime is same model as above
+
+%two parameter models (quadratic does not work well):
+%
+FL=fit(x', yBin', 'exp1'); %needs fit toolkit
+y=FL.a*exp(FL.b*x); 
+% 
+% GL=fitdist(yBin','Gamma');
+% ygam=gampdf(x,GL.a,GL.b); %k=a * Theta=b = mean yBin
+% Ngam=mean(yBin)/mean(ygam); %again why this Ngam, dunno...
+% y=Ngam*ygam;
+
+%%residual error
+% resG=sort(yBin)-y;
+% plot(resG)
+
+%mean(SubjOcc)
+mean(yBin)
+mean(y)
+
+hold on %so that the scatter command does not overwrite the figure data
+sz=10;
+c=[1 0.7 0.1];
+
+pHL=scatter(axLH,x,y,sz,c,'filled');
+
+pHL.MarkerEdgeAlpha = 0.5;
+pHL.MarkerFaceAlpha = 0.5;
+hold off
+
+box(axLH, 'off');
+axLH.FontSize=14; axLH.TickLength=[0.02 0.02];
+legend(axLH, {'Sample Data' 'Exponential Model'});
+
+
 
 
 
