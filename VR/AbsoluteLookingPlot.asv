@@ -588,13 +588,35 @@ lV=legend(axLH, {'Sample Data' 'Exponential Model'});
 %same for second and third session
 
 %start with normality test of each means distribution
-kResult=[];
+swResult=[];
+%t test for all together
+GoA=[]; BaA=[];
 for i=1:3
-kResult=[kResult kstest(Go.(strcat('Session',num2str(iii))).Subj_Mean-Ba.(strcat('Session',num2str(iii))).Subj_Mean)-mean(Go.(strcat('Session',num2str(iii))).Subj_Mean-Ba.(strcat('Session',num2str(iii))).Subj_Mean)];
-figure
-hist(Go.(strcat('Session',num2str(iii))).Subj_Mean-Ba.(strcat('Session',num2str(iii))).Subj_Mean-mean(Go.(strcat('Session',num2str(iii))).Subj_Mean-Ba.(strcat('Session',num2str(iii))).Subj_Mean))
-end
-kResult
+    
+    Gox=Go.(strcat('Session',num2str(i))).Subj_Mean;
+    Bay=Ba.(strcat('Session',num2str(i))).Subj_Mean;
+    
+swResult=[swResult swtest(Gox-Bay-mean(Gox-Bay))];
+%figure
+% hist(Gox-Bay-mean(Gox-Bay));
+%qqplot(Gox-Bay-mean(Gox-Bay));
 
+
+[h p]=ttest(Gox,Bay,'Tail','right')
+%[h p]=ttest2(Gox,Bay,'Tail','right') %2sample t test gives "worse" result.
+%A paired t test makes sense because it takes out maximal 
+%(or at least logical) amount of variance by using the specific pairing.
+%Any other pairing could lead to different results. Therefore for two
+%unrelated samples one takes their respective means and divides by
+%the sum of both standard deviations. Then t = squareroot of a two way ANOVA!
+
+GoA=[GoA Gox];  BaA=[BaA Bay];
+end
+swResult
+
+%
+GoM=reshape(GoA,[19,3]); BaM=reshape(BaA,[19,3]); 
+GoV=mean(GoM,2);   BaV=mean(BaM,2);
+[hA pA]=ttest(GoV,BaV,'Tail','right')
 figure
-hist(Go.(strcat('Session',num2str(iii))).Subj_Mean-Ba.(strcat('Session',num2str(iii))).Subj_Mean-mean(G.Subj_Mean-Ba.Session1.Subj_Mean))
+hist(GoV-BaV-mean(GoV-BaV))

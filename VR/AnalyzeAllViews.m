@@ -26,7 +26,7 @@ end
 
 Number = length(files);
 avgdist = cell(1,Number);
-for ii = 1:Number
+for ii = 5:5%Number
     
     
     if WorkPlace==2
@@ -149,3 +149,16 @@ data = fopen(strcat(files(ii).folder,'\', files(ii).name));
    save(current_name,'NumViews')
 end
 %clear all;
+
+% %shows how often each number appeared
+%    A = occ;
+%    x = unique(A);
+%    N = numel(x);
+% 
+%    count = zeros(N,1);
+% 
+%    for k = 1:N
+%       count(k) = sum(A==x(k));
+%    end
+% 
+%    disp([ x(:) count ]);

@@ -42,6 +42,17 @@ Good=struct(); Good.Session1=[]; Good.Session2=[]; Good.Session3=[];
 Bad=struct(); Bad.Session1=[]; Bad.Session2=[]; Bad.Session3=[]; 
 
 
+%for repeated measures t test analysis 
+%(see in loop for detailed description)
+Go.Session1.Subj_Mean=[];
+Ba.Session1.Subj_Mean=[];
+Go.Session2.Subj_Mean=[];
+Ba.Session2.Subj_Mean=[];
+Go.Session3.Subj_Mean=[];
+Ba.Session3.Subj_Mean=[];
+
+
+
 %read in participants of every session
 for iii=1:3
 %for every entry in MiiiNum read in NumViewsD file.
@@ -73,26 +84,42 @@ Subj_HouseTime.NumViews.House=str2double(extractBefore(Subj_HouseTime.NumViews.H
 
 AllOcc=[AllOcc Subj_HouseTime.NumViews.occ'];
         
+
+
+GoodSubj=[];
+BadSubj=[];
+
     for ii=1:36
         
         %extract house number and from house number extract looking time
         %if both are the same, add time to good otherwise add time to bad
         if strcmp(Subj_Perf.Output.Absolute.Trial_3s(ii).Correct,Subj_Perf.Output.Absolute.Trial_3s(ii).Decision)
-        Good.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)];
+        GoodSubj=[GoodSubj Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)]; %adds nothing if the house does not exist in NumViews.House!
         else
-        Bad.(strcat('Session',num2str(iii)))=[Bad.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)];
+        BadSubj=[BadSubj Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_3s(ii).House_Nr)];
         end
         
         if strcmp(Subj_Perf.Output.Absolute.Trial_Inf(ii).Correct,Subj_Perf.Output.Absolute.Trial_Inf(ii).Decision)
-        Good.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
+        GoodSubj=[GoodSubj Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
         else
-        Bad.(strcat('Session',num2str(iii)))=[Bad.(strcat('Session',num2str(iii))) Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
+        BadSubj=[BadSubj Subj_HouseTime.NumViews.occ(Subj_HouseTime.NumViews.House == Subj_Perf.Output.Absolute.Trial_Inf(ii).House_Nr)];
         end
         
     end
 
+Good.(strcat('Session',num2str(iii)))=[Good.(strcat('Session',num2str(iii))) GoodSubj];    
+Bad.(strcat('Session',num2str(iii)))=[Bad.(strcat('Session',num2str(iii))) BadSubj];
+
+%for t test analysis 
+Go.(strcat('Session',num2str(iii))).Subj_Mean=[Go.(strcat('Session',num2str(iii))).Subj_Mean mean(GoodSubj)];
+Ba.(strcat('Session',num2str(iii))).Subj_Mean=[Ba.(strcat('Session',num2str(iii))).Subj_Mean mean(BadSubj)];
+%(need to name them differently otherwise the simple session loop does not
+%work for appending double arrays) 
+    
 end
 end
+
+
 
 
 %plot mean and scatter
@@ -328,23 +355,41 @@ lLZ=legend(axLZ, {'Correct Houses' 'Wrong Houses'});
 
 %% Histogram of looking time distribution 
 
+
+
+%shows how often each number appeared
+   
+   Athing=AllOcc;
+   what = unique(Athing); %returns a list where each object in Athing appears once and sorted from small to large
+
+   N = length(what);   count = zeros(N,1);
+
+   for k = 1:N
+      count(k) = sum(Athing==what(k)); %works because the comparing expression returns a boolean array
+   end
+
+   disp([ what(:) count ]);
+   
 %time interval in seconds for bins
-Ti=0.05;
+Ti=1/30;
+%only if the bins are finer than the observations 
 %so approximate maximal time looking at one object
-nT=75/0.05;
+nT=max(AllOcc)/Ti;
 
 fLH=figure('Name','LookingtimeHistogram','NumberTitle','off');
 
 axLH=axes('Parent', fLH);   
 
-hLH=histogram('Parent', axLH);
+BinEdges=0+0.01:Ti:nT*Ti+0.01;
+BinCounts=histcounts(AllOcc, 'BinEdges',BinEdges); %'BinWidth',Ti); leads to problem with values at the edge
+
+
+hLH=histogram('Parent', axLH, 'BinEdges', BinEdges, 'BinCounts',BinCounts );
 
 %starting point, length of each bin which goes back to the starting point also
 %so actually starts at -0.025
-hLH.BinEdges= 0:Ti:nT*Ti;
 
-%vector which counts number of data occurences in the bins as specified
-hLH.BinCounts=histcounts(AllOcc,hLH.BinEdges);
+
 
 hLH.LineStyle='none';
 hLH.FaceAlpha=1;
@@ -365,8 +410,11 @@ ylabel(axLH,'Fixated Houses');
 %title(axLH,strcat( num2str(), 32, 'Learned Houses'));
 
 
-%Add model plot to figure
-x = hLH.BinEdges; 
+
+%ADD MODEL PLOT to figure
+
+x = BinEdges(5:length(BinEdges)-1); 
+FCounts=BinCounts(5:length(BinCounts));
 
 %exponential decay model
 %it sorts automatically 
@@ -374,27 +422,29 @@ x = hLH.BinEdges;
 %y=mean(AllOcc)/mean(exppdf(x,fL.mu))*exppdf(x,fL.mu); 
 
 %exponential decay fitted with mean as halftime model above does the same
-yexp=exp(-x/mean(AllOcc));
-No=mean(AllOcc)/mean(yexp);
-
+yexp=exp(-x/7);
+%yexp=exp(-Fx/6)%mean(FCounts))
+No=50%*mean(AllOcc)/mean(yexp)/3;
 y=No*yexp;
 
-mean(AllOcc)
-mean(y)
 
-%Other possible models:
+%Other plausible two parameter models (quadratic does not work well):
 %
-% FL=fit(x', [hLH.BinCounts 0]', 'exp1');
+% FL=fit(x', [hLH.BinCounts 0]', 'exp1'); %needs fit toolkit
 % y=170*exp(-x/3.2); 
 % 
-% GL=fitdist(AllOcc','Gamma');
-% %why times 500??
-% y=500*gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
-% 
+GL=fitdist(FCounts','Gamma');
+% % %+0.01 because otherwise model gives infinite at 0
+ ygam=gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
+Ngam=mean(FCounts)/mean(ygam);
+y=Ngam*ygam;
+
 %residual error
 % resG=sort(AllOcc)-y;
 % plot(resG)
 
+%mean(AllOcc)
+mean(y)
 
 sz=10;
 c=[1 0.7 0.1];
@@ -411,10 +461,27 @@ box(axLH, 'off');
 lV=legend(axLH, {'Sample Data' 'Exponential Model'});
 
 
+
 %% qq plot
 
 
+figure;
+Q=qqplot(hLH.BinCounts,y);
 
+title '' %'Session 1' %Quantile-Quantile Plot of All Performances'
+ylabel('Quantiles of House Distribution');
+xlabel('Quantiles of Normal Distribution');
+% 
+% set(gca, 'FontSize', 14, 'XTick', -2:2:2,'YTick', 80:40:160);
+% ylim([80 170])
+% xlim([-2.5 2.5])
+set(Q, 'Marker', '.','MarkerEdgeColor', [0 0 0.5],'MarkerSize',20);
+%legend(Q(1),'Session 2', 'Location', 'North')
+%the fitted straight line edge parts
+Q(2).Color=[1 1 1];
+Q(2).MarkerSize=0.01;
+Q(3).Color=[1 1 1];
+Q(3).MarkerSize=0.01;
 
 
 
@@ -470,24 +537,28 @@ x = hLH.BinEdges;
 %exponential decay fitted with mean as halftime model above does the same
 yexp=exp(-x/mean(AllOcc));
 No=mean(AllOcc)/mean(yexp);
-
 y=No*yexp;
 
-mean(AllOcc)
-mean(y)
+
 
 %Other possible models:
 %
-% FL=fit(x', [hLH.BinCounts 0]', 'exp1');
+% FL=fit(x', [hLH.BinCounts 0]', 'exp1'); %needs fit toolkit
 % y=170*exp(-x/3.2); 
 % 
 % GL=fitdist(AllOcc','Gamma');
-% %why times 500??
-% y=500*gampdf(x,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
-% 
+% %+0.01 because otherwise model gives infinite at 0
+% ygam=gampdf(x+0.01,GL.a,GL.b); %k=0.726 * Theta=8.664 = mean 6.2909
+% Ngam=mean(AllOcc)/mean(ygam);
+% y=Ngam*ygam;
+
 %residual error
 % resG=sort(AllOcc)-y;
 % plot(resG)
+
+
+mean(AllOcc)
+mean(y)
 
 
 sz=10;
@@ -508,3 +579,44 @@ lV=legend(axLH, {'Sample Data' 'Exponential Model'});
 
 
 
+%% statistical difference of good and bad population means per session:
+%for first session
+%take average looking time of first subject in good and average looking time of first subject in bad 
+%(since both samples always have approximately same number of datapoints that is fine)
+%same for second subject et cetera
+%check both groups for normality, then compare both groups with repeated measures t test
+%same for second and third session
+
+%start with normality test of each means distribution
+swResult=[];
+%t test for all together
+GoA=[]; BaA=[];
+for i=1:3
+    
+    Gox=Go.(strcat('Session',num2str(i))).Subj_Mean;
+    Bay=Ba.(strcat('Session',num2str(i))).Subj_Mean;
+    
+swResult=[swResult swtest(Gox-Bay-mean(Gox-Bay))];
+%figure
+% hist(Gox-Bay-mean(Gox-Bay));
+%qqplot(Gox-Bay-mean(Gox-Bay));
+
+
+[h p]=ttest(Gox,Bay,'Tail','right')
+%[h p]=ttest2(Gox,Bay,'Tail','right') %2sample t test gives "worse" result.
+%A paired t test makes sense because it takes out maximal 
+%(or at least logical) amount of variance by using the specific pairing.
+%Any other pairing could lead to different results. Therefore for two
+%unrelated samples one takes their respective means and divides by
+%the sum of both standard deviations. Then t = squareroot of a two way ANOVA!
+
+GoA=[GoA Gox];  BaA=[BaA Bay];
+end
+swResult
+
+%average of each subject per session makes the values IID
+GoM=reshape(GoA,[19,3]); BaM=reshape(BaA,[19,3]); 
+GoV=mean(GoM,2);   BaV=mean(BaM,2);
+[hA pA]=ttest(GoV,BaV,'Tail','right')
+figure
+hist(GoV-BaV-mean(GoV-BaV))
